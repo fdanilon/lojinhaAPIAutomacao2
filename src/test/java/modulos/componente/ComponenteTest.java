@@ -13,6 +13,8 @@ import static org.hamcrest.Matchers.*;
 
 public class ComponenteTest {
     private String token;
+    private Integer produtoId;
+    private Integer componenteId;
     @BeforeEach
     public void beforeEach() {
         // configurando os dados da API Rest da Lojinha
@@ -30,31 +32,71 @@ public class ComponenteTest {
                 .then()
                     .extract()
                     .path("data.token");
+
+        //obter id do produto
+        //Busca do produtoId
+        this.produtoId = given()
+                        .contentType(ContentType.JSON)
+                        .header("token", this.token)
+                    .when()
+                        .get("/v2/produtos")
+                    .then()
+                        .extract()
+                        .path("data.produtoId[0]");
+
+        //buscar o id do componente
+        this.componenteId = given()
+                    .contentType(ContentType.JSON)
+                    .header("token", this.token)
+                .when()
+                    .get("/v2/produtos/"+this.produtoId+"/componentes")
+                .then()
+                    .extract()
+                    .path("data.componenteId[0]");
     }
 
 
     @Test
     @DisplayName("Adicionar um novo componente ao produto")
     public void testAdicionarComponenteAoProduto(){
-        //Busca do produtoId
-        int produtoId = given()
-                .contentType(ContentType.JSON)
-                    .header("token", this.token)
-                .when()
-                    .get("/v2/produtos")
-                .then()
-                    .extract()
-                    .path("data.produtoId[0]");
         //adicionando um componente ao produto
         given()
             .contentType(ContentType.JSON)
                 .header("token", this.token)
                 .body(ComponenteDataFactory.criarComponente())
         .when()
-            .post("/v2/produtos/"+produtoId+"/componentes")
+            .post("/v2/produtos/"+this.produtoId+"/componentes")
         .then()
             .assertThat()
                 .statusCode(201)
                 .body("message", equalTo("Componente de produto adicionado com sucesso"));
+    }
+
+    @Test
+    @DisplayName("Buscar um componente do produto")
+    public void buscarComponenteDoProduto(){
+        //buscar os dados do componente procurado
+        given()
+            .contentType(ContentType.JSON)
+            .header("token", this.token)
+        .when()
+            .get("/v2/produtos/"+this.produtoId+"/componentes/"+this.componenteId)
+        .then()
+            .assertThat()
+                .statusCode(200)
+                .body("message", equalTo("Detalhando dados do componente de produto"));
+    }
+
+    @Test
+    @DisplayName("Buscar um componente do produto")
+    public void deletarComponente(){
+        given()
+            .contentType(ContentType.JSON)
+            .header("token", this.token)
+        .when()
+            .delete("/v2/produtos/"+this.produtoId+"/componentes/"+this.componenteId)
+        .then()
+            .assertThat()
+            .statusCode(204);
     }
 }
